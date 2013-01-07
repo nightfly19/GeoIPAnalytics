@@ -413,7 +413,26 @@ DAT.Globe = function(container, colorFn) {
     this.points.morphTargetInfluences[index] = leftover;
     this._time = t;
   });
+      function removeObject(scene, object ) {
+        var o, ol, zobject;
+        if ( object instanceof THREE.Mesh ) {
+            for ( o = scene.__webglObjects.length - 1; o >= 0; o -- ) {
+                zobject = scene.__webglObjects[ o ].object;
+                if ( object == zobject ) {
+                    scene.__webglObjects.splice( o, 1 );
+                    return;
+                }
+            }
+        }
+    }
 
+  this.resetData = function() {
+        if(this.points !== undefined) {
+            this.scene.removeObject(this.points);
+            removeObject(this.scene, this.points);
+            removeObject(this.scene, this.points);
+        }
+  }
   this.addData = addData;
   this.createPoints = createPoints;
   this.renderer = renderer;

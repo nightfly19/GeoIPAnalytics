@@ -105,6 +105,13 @@
 
   <div id="container"></div>
 
+  <div id="currentInfo">
+    <span id="min1">1 minute</span>
+    <span id="min5">5 minutes</span>
+    <span id="min15">15 minutes</span>
+    <span id="min60">60 minutes</span>
+  </div>
+
   <div id="title">
     Who is using Idealist.org
   </div>
@@ -117,52 +124,45 @@
   <script type="text/javascript" src="/globe.js"></script>
   <script type="text/javascript">
 
-    if(!Detector.webgl){
-      Detector.addGetWebGLMessage();
-    } else {
+  var min_breakdowns = [1, 5, 15, 60];
 
-      var container = document.getElementById('container');
-      var globe = new DAT.Globe(container);
-      console.log(globe);
+  var globe = DAT.Globe(document.getElementById('container'), function(label) {
+    return new THREE.Color([
+      0xd9d9d9, 0xb6b4b5, 0x9966cc, 0x15adff, 0x3e66a3,
+      0x216288, 0xff7e7e, 0xff1f13, 0xc0120b, 0x5a1301, 0xffcc02,
+      0xedb113, 0x9fce66, 0x0c9a39,
+      0xfe9872, 0x7f3f98, 0xf26522, 0x2bb673, 0xd7df23,
+      0xe6b23a, 0x7ed3f7][label]);
+  });
 
-// We're going to ask a file for the JSON data.
-xhr = new XMLHttpRequest();
+  var setmin = function(globe, min_ndx) {
+      return function() {
+          globe.resetData();
+          globe.addData(data[min_ndx][1], {format: 'magnitude', animate: true});
+          globe.createPoints();
+          globe.animate();
+      };
+  };
 
-// Where do we get the data?
-xhr.open( 'GET', 'stats.json', true );
-
-// What do we do when we have it?
-xhr.onreadystatechange = function() {
-
-  // If we've received the data
-  if ( xhr.readyState === 4 && xhr.status === 200 ) {
-
-      // Parse the JSON
-      var data = JSON.parse( xhr.responseText );
-
-      window.data = data;
-
-      // Tell the globe about your JSON data
-      for ( i = 0; i < data.length; i++ ) {
-        console.log(data);
-        console.log(data[i][1], 'adding');
-        globe.addData( data[i][1], {format: 'legend'} );
-      }
-
-      // Create the geometry
-      globe.createPoints();
-
-      // Begin animation
-      globe.animate();
-
-    }
-
+  for(var i = 0; i < min_breakdowns.length; i++) {
+      var bd_link = document.getElementById('min'+min_breakdowns[i]);
+      bd_link.addEventListener('click', setmin(globe, i), false);
   }
 
-};
-
-// Begin request
-xhr.send( null );
+  xhr = new XMLHttpRequest();
+  xhr.open('GET', '/stats.json', true);
+  xhr.onreadystatechange = function(e) {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        var data = JSON.parse(xhr.responseText);
+        window.data = data;
+        globe.addData(data[0][1], {format: 'magnitude', animate: true});
+        globe.createPoints();
+        globe.animate();
+      }
+    }
+  };
+  xhr.send(null);
 </script>
 
   </body>
