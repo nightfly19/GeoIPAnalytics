@@ -127,13 +127,35 @@
   var min_breakdowns = [1, 5, 15, 60];
 
   var globe = DAT.Globe(document.getElementById('container'));
+  globe.min_ndx = 0;
 
-  var setmin = function(globe, min_ndx) {
+  var setmin = function(globe, set_ndx) {
       return function() {
+          if(set_ndx !== undefined)
+              globe.min_ndx = set_ndx;
           globe.resetData();
-          globe.addData(data[min_ndx][1], {format: 'magnitude', animate: true});
+          globe.addData(data[globe.min_ndx][1], {format: 'magnitude', animate: true});
           globe.createPoints();
           globe.animate();
+      };
+  };
+
+  var update_data = function(globe) {
+      return function() {
+          xhr = new XMLHttpRequest();
+          xhr.open('GET', '/stats.json', true);
+          xhr.onreadystatechange = function(e) {
+            if (xhr.readyState === 4) {
+              if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                window.data = data;
+                setmin(globe)();
+                
+                window.setInterval(update_data(globe), 10000);
+              }
+            }
+          };
+          xhr.send(null);
       };
   };
 
@@ -142,20 +164,7 @@
       bd_link.addEventListener('click', setmin(globe, i), false);
   }
 
-  xhr = new XMLHttpRequest();
-  xhr.open('GET', '/stats.json', true);
-  xhr.onreadystatechange = function(e) {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        var data = JSON.parse(xhr.responseText);
-        window.data = data;
-        globe.addData(data[0][1], {format: 'magnitude', animate: true});
-        globe.createPoints();
-        globe.animate();
-      }
-    }
-  };
-  xhr.send(null);
+  update_data(globe)();
 </script>
 
   </body>
