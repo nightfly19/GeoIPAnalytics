@@ -45,6 +45,10 @@ class LocationStats(object):
         if self.min_count >= self.max_minute_breakdown:
             self.old_stats_queue.pop()
 
+        try:
+            del self.json_stats_cached
+        except AttributeError:
+            pass
         reactor.callLater(60, self.next_minute)
 
     def saw_addr(self, addr):
@@ -62,6 +66,23 @@ class LocationStats(object):
         else:
             return self.stats_by_minute[min_breakdown]
 
+    def get_json_stats(self):
+        try:
+            return self.json_stats_cached
+        except AttributeError:
+            pass
+
+        ret_data = []
+        for min_bd in self.minute_breakdowns:
+            set_data = []
+            for loc, value in self.get_stats(min_bd).items():
+                set_data.append(loc[0])
+                set_data.append(loc[1])
+                set_data.append(value / (float(self.max_cnt) * 1.05))
+            ret_data.append([str(min_bd), set_data])
+        self.json_stats_cached = json.dumps(ret_data)
+        return self.json_stats_cached
+
 
 class JsonStats(resource.Resource):
 
@@ -72,15 +93,7 @@ class JsonStats(resource.Resource):
 
     def render_GET(self, request):
         request.setHeader("content-type", "application/json")
-        ret_data = []
-        for min_bd in self.loc_stats.minute_breakdowns:
-            set_data = []
-            for loc, value in self.loc_stats.get_stats(min_bd).items():
-                set_data.append(loc[0])
-                set_data.append(loc[1])
-                set_data.append(value / float(self.loc_stats.max_cnt * 2))
-            ret_data.append([str(min_bd), set_data])
-        return json.dumps(ret_data)
+        return self.loc_stats.get_json_stats()
 
 
 class IpReceiver(DatagramProtocol):
