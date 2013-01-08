@@ -22,7 +22,7 @@ class LocationStats(object):
         self.max_minute_breakdown = int(max(minute_breakdowns))
 
         # Normalization factor
-        self.max_cnt = 0
+        self.max_cnt = 1
 
         self.min_count = 0
         reactor.callLater(60, self.next_minute)
