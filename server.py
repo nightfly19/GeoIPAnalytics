@@ -79,7 +79,7 @@ class JsonStats(resource.Resource):
                 set_data.append(loc[0])
                 set_data.append(loc[1])
                 set_data.append(value / float(self.loc_stats.max_cnt))
-            ret_data.append([min_bd, set_data])
+            ret_data.append([str(min_bd), set_data])
         return json.dumps(ret_data)
 
 
