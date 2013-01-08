@@ -1,0 +1,4 @@
+Twisted==12.3.0
+pygeoip==0.2.5
+wsgiref==0.1.2
+zope.interface==4.0.3
