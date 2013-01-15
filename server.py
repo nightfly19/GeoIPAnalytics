@@ -44,7 +44,9 @@ class LocationStats(object):
     def __init__(self, geoip_db, minute_breakdowns=(1, 5, 15, 60)):
         self.geoip_db = geoip_db
         self.ip_stats = IPStats(self)
+        self.notable_ips = Counter()
         self.cur_stats = Counter()
+        self.last_top_ips = str(demjson.encode([]))
 
         self.minute_breakdowns = minute_breakdowns
         self.stats_by_minute = {}
@@ -67,9 +69,12 @@ class LocationStats(object):
                     self.stats_by_minute[i] = self.stats_by_minute[i] - sub_stats
             self.stats_by_minute[i] = self.stats_by_minute[i] + self.cur_stats
 
+        self.last_top_ips = str(demjson.encode(self.notable_ips.most_common(10)))
+
         # Flip stats buffers
         self.old_stats_queue.appendleft(self.cur_stats)
         self.cur_stats = Counter()
+        self.notable_ips = Counter()
         if self.min_count > self.max_minute_breakdown:
             self.old_stats_queue.pop()
 
@@ -78,7 +83,6 @@ class LocationStats(object):
         except AttributeError:
             pass
 
-        print 'top ips for minute: %s' % self.ip_stats.seen_ips.most_common(10)
         reactor.callLater(60, self.next_minute)
 
     def saw_addr(self, addr):
@@ -90,6 +94,7 @@ class LocationStats(object):
         if self.ip_stats.is_bot(addr):
             return
 
+        self.notable_ips[addr] += 1
         self.cur_stats[(rec['latitude'], rec['longitude'])] += 1
 
     def decrement_addr(self, addr):
@@ -105,7 +110,7 @@ class LocationStats(object):
         else:
             return self.stats_by_minute[min_breakdown]
 
-    def get_json_stats(self):
+    def get_globe_stats(self):
         try:
             return self.json_stats_cached
         except AttributeError:
@@ -126,7 +131,7 @@ class LocationStats(object):
         return self.json_stats_cached
 
 
-class JsonStats(resource.Resource):
+class GlobeStats(resource.Resource):
 
     isLeaf = True
 
@@ -135,7 +140,18 @@ class JsonStats(resource.Resource):
 
     def render_GET(self, request):
         request.setHeader("content-type", "application/json")
-        return self.loc_stats.get_json_stats()
+        return self.loc_stats.get_globe_stats()
+
+class TopIps(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, loc_stats):
+        self.loc_stats = loc_stats
+
+    def render_GET(self, request):
+        request.setHeader("content-type", "application/json")
+        return self.loc_stats.last_top_ips
 
 
 class IpReceiver(DatagramProtocol):
@@ -158,7 +174,8 @@ def main():
     db = pygeoip.GeoIP('GeoIP.dat')
     loc_stats = LocationStats(db)
     root_site = static.File("static")
-    root_site.putChild("stats.json", JsonStats(loc_stats))
+    root_site.putChild("globe_stats.json", GlobeStats(loc_stats))
+    root_site.putChild("top_ips.json", TopIps(loc_stats))
 
     reactor.listenTCP(8880, server.Site(root_site))
     reactor.listenUDP(8999, IpReceiver(loc_stats))
