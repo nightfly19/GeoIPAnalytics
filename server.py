@@ -19,7 +19,6 @@ class IPStats(object):
     def saw_ip(self, ip):
         if ip not in self.seen_ips:
             self.seen_ips[ip] = True
-            print ip
             d = self.resolver.lookupPointer('.'.join(ip.split('.')[::-1]) + '.in-addr.arpa')
             d.addCallback(self.ptr_response, ip)
             d.addErrback(self.ptr_error, ip)
@@ -28,7 +27,6 @@ class IPStats(object):
         return self.bot_ips[addr] > 0
     
     def ptr_error(self, err, ip):
-        print 'Error looking up reverse dns for %s' % ip
         if ip in self.seen_ips:
             del self.seen_ips[ip]
 
@@ -37,7 +35,6 @@ class IPStats(object):
         if res.endswith('.googlebot.com') or res.endswith('.search.msn.com')\
             or res.endswith('.crawl.yahoo.net') or res.endswith('.crawl.baidu.com.'):
             self.bot_ips[ip] += 1
-            print 'found bot %s with addr %s' % (res, ip)
 
 
 class LocationStats(object):
@@ -78,6 +75,8 @@ class LocationStats(object):
             del self.json_stats_cached
         except AttributeError:
             pass
+
+        print 'top ips for minute: %s' % self.ip_stats.seen_ips.most_common(10)
         reactor.callLater(60, self.next_minute)
 
     def saw_addr(self, addr):
