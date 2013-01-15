@@ -366,6 +366,15 @@ DAT.Globe = function(container, colorFn) {
 
   function render() {
     zoom(curZoomSpeed);
+    
+    if(this.last_render === undefined)
+        this.last_render = new Date().getTime();
+
+    var cur_time = new Date().getTime()
+    var time_delta = cur_time - this.last_render;
+    console.log(time_delta);
+    target.x -= 0.0001 * time_delta;
+    this.last_render = cur_time;
 
     rotation.x += (target.x - rotation.x) * 0.1;
     rotation.y += (target.y - rotation.y) * 0.1;
