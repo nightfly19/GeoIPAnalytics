@@ -2,16 +2,49 @@ from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.protocol import Factory
 from twisted.internet import reactor
 from twisted.web import server, resource, static
+from twisted.names.client import Resolver, createResolver
 
 import pygeoip
 
 import demjson
 from collections import deque, Counter
 
+class IPStats(object):
+
+    def __init__(self):
+        self.seen_ips = Counter()
+        self.bot_ips = Counter()
+        self.resolver = createResolver()
+
+    def saw_ip(self, ip):
+        if ip not in self.seen_ips:
+            self.seen_ips[ip] = True
+            print ip
+            d = self.resolver.lookupPointer('.'.join(ip.split('.')[::-1]) + '.in-addr.arpa')
+            d.addCallback(self.ptr_response, ip)
+            d.addErrback(self.ptr_error, ip)
+
+    def is_bot(self, addr):
+        return self.bot_ips[addr] > 0
+    
+    def ptr_error(self, err, ip):
+        print 'Error looking up reverse dns for %s' % ip
+        if ip in self.seen_ips:
+            del self.seen_ips[ip]
+
+    def ptr_response(self, resp, ip):
+        res = str(resp[0][0].payload.name)
+        if res.endswith('.googlebot.com') or res.endswith('.search.msn.com')\
+            or res.endswith('.crawl.yahoo.net') or res.endswith('.crawl.baidu.com.'):
+            self.bot_ips[ip] += 1
+            print 'found bot %s with addr %s' % (res, ip)
+
+
 class LocationStats(object):
 
     def __init__(self, geoip_db, minute_breakdowns=(1, 5, 15, 60)):
         self.geoip_db = geoip_db
+        self.ip_stats = IPStats()
         self.cur_stats = Counter()
 
         self.minute_breakdowns = minute_breakdowns
@@ -51,6 +84,11 @@ class LocationStats(object):
         rec = self.geoip_db.record_by_addr(addr)
         if rec == None:
             return
+
+        self.ip_stats.saw_ip(addr)
+        if self.ip_stats.is_bot(addr):
+            return
+
         self.cur_stats[(rec['latitude'], rec['longitude'])] += 1
 
         # set normalization factor
