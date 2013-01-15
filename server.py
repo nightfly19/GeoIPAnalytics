@@ -11,7 +11,8 @@ from collections import deque, Counter
 
 class IPStats(object):
 
-    def __init__(self):
+    def __init__(self, loc_stats):
+        self.loc_stats = loc_stats
         self.seen_ips = Counter()
         self.bot_ips = Counter()
         self.resolver = createResolver()
@@ -35,13 +36,14 @@ class IPStats(object):
         if res.endswith('.googlebot.com') or res.endswith('.search.msn.com')\
             or res.endswith('.crawl.yahoo.net') or res.endswith('.crawl.baidu.com.'):
             self.bot_ips[ip] += 1
+            self.loc_stats.decrement_addr(ip)
 
 
 class LocationStats(object):
 
     def __init__(self, geoip_db, minute_breakdowns=(1, 5, 15, 60)):
         self.geoip_db = geoip_db
-        self.ip_stats = IPStats()
+        self.ip_stats = IPStats(self)
         self.cur_stats = Counter()
 
         self.minute_breakdowns = minute_breakdowns
@@ -90,8 +92,12 @@ class LocationStats(object):
 
         self.cur_stats[(rec['latitude'], rec['longitude'])] += 1
 
-        # set normalization factor
-        cnt = self.cur_stats[(rec['latitude'], rec['longitude'])]
+    def decrement_addr(self, addr):
+        rec = self.geoip_db.record_by_addr(addr)
+        if rec == None:
+            print 'This shouldnt happen, inval dec addr'
+            return
+        self.cur_stats[(rec['latitude'], rec['longitude'])] -= 1
 
     def get_stats(self, min_breakdown=None):
         if min_breakdown == None:
