@@ -12,7 +12,7 @@ from collections import deque, Counter
 
 class MultiIntervalCounter(object):
 
-    def __init__(self, interval=1, multiples=(1,5,10)):
+    def __init__(self, interval=60, multiples=(1,5,10)):
         self.counter = Counter()
         self.interval = interval
         self.multiples = multiples
