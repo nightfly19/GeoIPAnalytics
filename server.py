@@ -65,7 +65,7 @@ class IPStats(object):
         res = str(resp[0][0].payload.name)
         if res.endswith('.googlebot.com') or res.endswith('.search.msn.com')\
                 or res.endswith('.crawl.yahoo.net') or res.endswith('.crawl.baidu.com.')\
-                or res.endswith('.google.com'):
+                or res.endswith('.google.com') or res.endswith('.yandex.com'):
             self.bot_ips[ip] += 1
             self.loc_stats.decrement_addr(ip)
             self.non_bot_ips.counter[ip] -= 1
