@@ -33,7 +33,7 @@ class MultiIntervalCounter(object):
         reactor.callLater(self.interval, self.next_interval)
 
     def most_common(self, count):
-        return [(i, x.most_common(count)) for i, x in self.multi_counters.items()]
+        return [(i, self.multi_counters[i].most_common(count)) for i in self.multiples]
 
 
 class IPStats(object):
