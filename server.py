@@ -32,6 +32,9 @@ class MultiIntervalCounter(object):
         self.counter = Counter()
         reactor.callLater(self.interval, self.next_interval)
 
+    def most_common(self, count):
+        return [(i, x.most_common(count)) for i, x in self.multi_counters.items()]
+
 
 class IPStats(object):
 
@@ -128,7 +131,7 @@ class TopIps(resource.Resource):
 
     def render_GET(self, request):
         request.setHeader("content-type", "application/json")
-        return str(demjson.encode(self.ip_stats.non_bot_ips.multi_counters))
+        return str(demjson.encode(self.ip_stats.non_bot_ips.most_common(100)))
 
 
 class IpReceiver(DatagramProtocol):
