@@ -105,7 +105,8 @@ class GlobeStats(resource.Resource):
     def render_GET(self, request):
         request.setHeader("content-type", "application/json")
         data = []
-        for i, c in self.loc_stats.stats.multi_counters.items():
+        for i in self.loc_stats.stats.multiples:
+            c = self.loc_stats.stats.multi_counters[i]
             vals = deque()
             maxval = 0
             try:
