@@ -12,7 +12,7 @@ from collections import deque, Counter
 
 class MultiIntervalCounter(object):
 
-    def __init__(self, interval=60, multiples=(1,5,10,60)):
+    def __init__(self, interval=2, multiples=(1,5,10,60)):
         self.counter = Counter()
         self.interval = interval
         self.multiples = multiples
@@ -43,6 +43,7 @@ class IPStats(object):
         self.seen_ips = Counter()
         self.bot_ips = Counter()
         self.non_bot_ips = MultiIntervalCounter()
+        self.rdns = MultiIntervalCounter()
         self.resolver = createResolver()
 
     def saw_ip(self, ip):
@@ -63,12 +64,20 @@ class IPStats(object):
 
     def ptr_response(self, resp, ip):
         res = str(resp[0][0].payload.name)
+
         if res.endswith('.googlebot.com') or res.endswith('.search.msn.com')\
                 or res.endswith('.crawl.yahoo.net') or res.endswith('.crawl.baidu.com.')\
                 or res.endswith('.google.com') or res.endswith('.yandex.com'):
             self.bot_ips[ip] += 1
             self.loc_stats.decrement_addr(ip)
             self.non_bot_ips.counter[ip] -= 1
+        else:
+            postfixes = res.split('.')
+            if len(postfixes) > 3:
+                postfixes = postfixes[-3:]
+            for i, postfix in enumerate(postfixes):
+                pf = '.'.join([x for x in postfixes[-i:]])
+                self.rdns.counter[pf] += 1
 
 
 class LocationStats(object):
@@ -122,6 +131,18 @@ class GlobeStats(resource.Resource):
         return str(demjson.encode(data))
 
 
+class TopRdns(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, ip_stats):
+        self.ip_stats = ip_stats
+
+    def render_GET(self, request):
+        request.setHeader("content-type", "application/json")
+        return str(demjson.encode(self.ip_stats.rdns.most_common(100)))
+
+
 class TopIps(resource.Resource):
 
     isLeaf = True
@@ -156,6 +177,7 @@ def main():
     root_site = static.File("static")
     root_site.putChild("globe_stats.json", GlobeStats(loc_stats))
     root_site.putChild("top_ips.json", TopIps(loc_stats.ip_stats))
+    root_site.putChild("top_rdns.json", TopRdns(loc_stats.ip_stats))
 
     reactor.listenTCP(8880, server.Site(root_site))
     reactor.listenUDP(8999, IpReceiver(loc_stats))
