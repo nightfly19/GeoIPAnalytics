@@ -372,7 +372,6 @@ DAT.Globe = function(container, colorFn) {
 
     var cur_time = new Date().getTime()
     var time_delta = cur_time - this.last_render;
-    console.log(time_delta);
     target.x -= 0.0001 * time_delta;
     this.last_render = cur_time;
 
