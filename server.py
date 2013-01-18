@@ -38,12 +38,12 @@ class MultiIntervalCounter(object):
 
 class IPStats(object):
 
-    def __init__(self, loc_stats):
+    def __init__(self, loc_stats, minute_breakdowns=(1, 5, 15, 60)):
         self.loc_stats = loc_stats
         self.seen_ips = Counter()
         self.bot_ips = Counter()
-        self.non_bot_ips = MultiIntervalCounter()
-        self.rdns = MultiIntervalCounter()
+        self.non_bot_ips = MultiIntervalCounter(multiples=minute_breakdowns)
+        self.rdns = MultiIntervalCounter(multiples=minute_breakdowns)
         self.resolver = createResolver()
 
     def saw_ip(self, ip):
@@ -84,7 +84,7 @@ class LocationStats(object):
 
     def __init__(self, geoip_db, minute_breakdowns=(1, 5, 15, 60)):
         self.geoip_db = geoip_db
-        self.ip_stats = IPStats(self)
+        self.ip_stats = IPStats(self, minute_breakdowns=minute_breakdowns)
         self.stats = MultiIntervalCounter(multiples=minute_breakdowns)
 
     def saw_addr(self, addr):

@@ -30,7 +30,7 @@
 
       }
 
-      #currentInfo {
+      #intervals {
         width: 270px;
         position: absolute;
         left: 20px;
@@ -40,6 +40,11 @@
 
         border-top: 1px solid rgba(255,255,255,0.4);
         padding: 10px;
+      }
+
+      .interval {
+        float: left;
+        padding: 2px;
       }
 
       a {
@@ -98,18 +103,13 @@
         background: url(/ce.png);
       }
 
-
     </style>
   </head>
   <body>
 
   <div id="container"></div>
 
-  <div id="currentInfo">
-    <span id="min1">1 minute</span>
-    <span id="min5">5 minutes</span>
-    <span id="min15">15 minutes</span>
-    <span id="min60">60 minutes</span>
+  <div id="intervals">
   </div>
 
   <div id="title">
@@ -122,50 +122,8 @@
   <script type="text/javascript" src="/third-party/Three/Detector.js"></script>
   <script type="text/javascript" src="/third-party/Tween.js"></script>
   <script type="text/javascript" src="/globe.js"></script>
-  <script type="text/javascript">
-
-  var min_breakdowns = [1, 5, 15, 60];
-
-  var globe = DAT.Globe(document.getElementById('container'));
-  globe.min_ndx = 0;
-
-  var setmin = function(globe, set_ndx) {
-      return function() {
-          if(set_ndx !== undefined)
-              globe.min_ndx = set_ndx;
-          globe.resetData();
-          globe.addData(data[globe.min_ndx][1], {format: 'magnitude', animate: true});
-          globe.createPoints();
-          globe.animate();
-      };
-  };
-
-  var update_data = function(globe) {
-      return function() {
-          xhr = new XMLHttpRequest();
-          xhr.open('GET', '/globe_stats.json', true);
-          xhr.onreadystatechange = function(e) {
-            if (xhr.readyState === 4) {
-              if (xhr.status === 200) {
-                var data = JSON.parse(xhr.responseText);
-                window.data = data;
-                setmin(globe)();
-                
-//                window.setInterval(update_data(globe), 1000);
-              }
-            }
-          };
-          xhr.send(null);
-      };
-  };
-
-  for(var i = 0; i < min_breakdowns.length; i++) {
-      var bd_link = document.getElementById('min'+min_breakdowns[i]);
-      bd_link.addEventListener('click', setmin(globe, i), false);
-  }
-
-  update_data(globe)();
-</script>
+  <script type="text/javascript" src="/jquery-1.9.0.min.js"></script>
+  <script type="text/javascript" src="/geoipanalytics.js"></script>
 
   </body>
 
