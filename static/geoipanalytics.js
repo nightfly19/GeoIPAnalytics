@@ -1,41 +1,72 @@
-var min_breakdowns = [1, 5, 15, 60];
-
 var globe = DAT.Globe(document.getElementById('container'));
-globe.min_ndx = 0;
+var maximum_interval = 1;
+var data = [];
 
-var setmin = function(globe, set_ndx) {
-    return function() {
-        if(set_ndx !== undefined)
-            globe.min_ndx = set_ndx;
-        globe.resetData();
-        globe.addData(data[globe.min_ndx][1], {format: 'magnitude', animate: true});
-        globe.createPoints();
-        globe.animate();
-    };
+const STATS_URI = '/globe_stats.json';
+
+var interval_keys = function(data){
+    var keys = [];
+    for(index in data){
+        if(data.hasOwnProperty(index)){
+            keys.push(parseInt(data[index][0]));
+        }
+    }
+
+    return keys;
 };
 
-var update_data = function(globe) {
-    return function() {
-        xhr = new XMLHttpRequest();
-        xhr.open('GET', '/globe_stats.json', true);
-        xhr.onreadystatechange = function(e) {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    window.data = data;
-                    setmin(globe)();
-
-                    //                window.setInterval(update_data(globe), 1000);
-                }
+var redraw_globe = function() {
+    globe.resetData();
+    for(index in data){
+        if(data.hasOwnProperty(index)){
+            var interval = parseInt(data[index][0]);
+            var points = data[index][1];
+            if(interval <= maximum_interval){
+                globe.addData(points,{format: 'magnitude', animate: true});
             }
-        };
-        xhr.send(null);
+        }
     };
+    globe.createPoints();
+    globe.animate();
 };
 
-for(var i = 0; i < min_breakdowns.length; i++) {
-    var bd_link = document.getElementById('min'+min_breakdowns[i]);
-    bd_link.addEventListener('click', setmin(globe, i), false);
+var elem = function(elem_type) {
+    return $(document.createElement(elem_type));
 }
 
-update_data(globe)();
+var create_interval_buttons = function() {
+    var interval_button_container = $("#intervals");
+    var first = true;
+    interval_keys(data).forEach(function(interval){
+        interval_button_container.append(elem('a')
+                                         .attr('href','#')
+                                         .text(interval.toString()
+                                               + " Minute"
+                                               + ((interval > 1) ? "s" : ""))
+                                         .addClass('interval')
+                                         .attr('interval',interval)
+                                         .css('font-weight', first ? "bold" : "normal")
+                                         .click(function(cows){
+                                             $('.interval').css('font-weight','normal');
+                                             $(this).css('font-weight','bold');
+                                             maximum_interval = $(this).attr('interval');
+                                             redraw_globe();
+                                         }));
+        if(first){
+            maximum_interval = interval;
+        }
+        first = false;
+    });
+};
+
+var update_globe = function(callback) {
+    $.getJSON(STATS_URI,function(new_data){
+        data = new_data;
+        callback ? callback() : true;
+        redraw_globe();
+    });
+};
+
+$(document).ready(function(){
+    update_globe(create_interval_buttons);
+});
